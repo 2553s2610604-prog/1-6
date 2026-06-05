@@ -1,57 +1,77 @@
 import streamlit as st
-import requests
-from datetime import datetime
+from google import genai
+from google.genai import types
+from google.genai.errors import APIError
 
-# 1. 페이지 설정 및 제목
-st.set_page_config(page_title="오성고 급식 알리미", page_icon="🍱")
-st.title("🍱 오성고등학교 급식 알리미")
-st.write("오늘의 맛있는 급식 메뉴를 확인하세요!")
+# 페이지 설정
+st.set_page_config(page_title="오성고 급식 챗봇", page_icon="🍱", layout="centered")
+st.title("🍱 오성고등학교 급식 안내 챗봇")
+st.caption("오성고의 맛있는 급식 메뉴를 물어보세요! (예: 오늘 점심 뭐야?, 내일 급식 알려줘)")
 
-# 2. 나이스 API 정보 설정 (대구오성고등학교 기준)
-# ※ 만약 다른 지역 오성고라면 아래 교육청코드(ATPT_OFCDC_SC_CODE)와 학교코드(SD_SCH_CODE)를 수정하세요.
-ATPT_CODE = "R10"       # 대구광역시교육청
-SCH_CODE = "7240061"    # 대구오성고등학교 고유코드
+# 1. Streamlit Secrets에서 API 키 로드 및 클라이언트 초기화
+if "GEMINI_API_KEY" not in st.secrets:
+    st.error("Streamlit Secrets에 'GEMINI_API_KEY'가 설정되지 않았습니다. 배포 설정을 확인해주세요.")
+    st.stop()
 
-# 3. 날짜 선택 (기본값: 오늘 날짜)
-today = datetime.today()
-selected_date = st.date_input("날짜를 선택하세요", today)
-date_str = selected_date.strftime("%Y%m%d") # API 요청용 날짜 형식 (YYYYMMDD)
-
-# 4. 나이스 API 호출 URL 만들기
-url = "https://open.neis.go.kr/hub/mealServiceDietInfo"
-params = {
-    "KEY": "", # 인증키 없이도 기본 호출 가능
-    "Type": "json",
-    "pIndex": 1,
-    "pSize": 10,
-    "ATPT_OFCDC_SC_CODE": ATPT_CODE,
-    "SD_SCH_CODE": SCH_CODE,
-    "MLSV_YMD": date_str
-}
-
-# 5. 데이터 가져오기 및 화면 표시
 try:
-    response = requests.get(url, params=params)
-    data = response.json()
-
-    # 급식 데이터가 있는지 확인
-    if "mealServiceDietInfo" in data:
-        meal_info = data["mealServiceDietInfo"][1]["row"]
-        
-        # 제공되는 급식(조식/중식/석식) 만큼 반복해서 출력
-        for meal in meal_info:
-            meal_type = meal["MMEAL_SC_NM"] # 조식, 중식, 석식 구분
-            # <br/> 태그를 줄바꿈(\n)으로 바꾸고, 요리명 뒤의 알레르기 번호 제거
-            raw_menu = meal["DDISH_NM"].replace("<br/>", "\n")
-            
-            # 깔끔하게 UI 구성
-            st.subheader(f"🍴 {meal_type}")
-            st.text(raw_menu)
-            st.caption(f"칼로리: {meal['CAL_INFO']}")
-            st.divider()
-            
-    else:
-        st.warning("선택하신 날짜에는 급식 정보가 없습니다. (주말, 공휴일 또는 미등록)")
-
+    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 except Exception as e:
-    st.error("급식 정보를 가져오는 중 오류가 발생했습니다. 인터넷 연결을 확인해 주세요.")
+    st.error(f"Gemini 클라이언트 초기화 중 오류가 발생했습니다: {e}")
+    st.stop()
+
+# 2. 채팅 기록 세션 상태(Session State) 초기화
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {"role": "assistant", "content": "안녕하세요! 오성고등학교 급식 안내 챗봇입니다. 무엇을 도와드릴까요?"}
+    ]
+
+# 3. 기존 채팅 기록 화면에 표시
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# 4. 사용자 입력 받기
+if user_input := st.chat_input("오늘 급식 메뉴가 뭐야?"):
+    # 사용자 메시지 추가 및 화면 표시
+    st.session_state.messages.append({"role": "user", "content": user_input})
+    with st.chat_message("user"):
+        st.markdown(user_input)
+
+    # 5. 모델 답변 생성 및 오류 처리
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        message_placeholder.markdown("🔄 메뉴판 확인 중...")
+        
+        try:
+            # 급식 답변에 최적화된 페르소나 부여 (System Instruction)
+            system_instruction = (
+                "당신은 오성고등학교의 친절하고 유쾌한 급식 안내 AI 비서입니다. "
+                "사용자가 급식 메뉴를 물어보면 친절하게 답변해주세요. "
+                "만약 오늘 날짜의 실제 정확한 급식 데이터를 모른다면, "
+                "솔직하게 실시간 급식 정보를 가져오지 못했다고 안내하고 나이스(NEIS) 급식 정보 등을 확인하라고 권유하세요. "
+                "답변할 때는 이모지를 적절히 섞어서 학생들에게 말하듯 친근하게 해주세요."
+            )
+
+            # API 호출 (gemini-2.5-flash-lite 모델 사용)
+            response = client.models.generate_content(
+                model='gemini-2.5-flash-lite',
+                contents=user_input,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.7,
+                )
+            )
+            
+            # 답변 출력 및 세션 저장
+            answer = response.text
+            message_placeholder.markdown(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+
+        except APIError as ae:
+            # Gemini API 자체 오류 처리
+            error_msg = f"❌ Gemini API 오류가 발생했습니다: {ae.message}"
+            message_placeholder.markdown(error_msg)
+        except Exception as e:
+            # 기타 일반 오류 처리
+            error_msg = f"⚠️ 예상치 못한 오류가 발생했습니다: {str(e)}"
+            message_placeholder.markdown(error_msg)
