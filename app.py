@@ -3,75 +3,83 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
-# 페이지 설정
-st.set_page_config(page_title="오성고 급식 챗봇", page_icon="🍱", layout="centered")
-st.title("🍱 오성고등학교 급식 안내 챗봇")
-st.caption("오성고의 맛있는 급식 메뉴를 물어보세요! (예: 오늘 점심 뭐야?, 내일 급식 알려줘)")
+# 1. 페이지 설정 및 제목
+st.set_page_config(page_title="오늘 뭐 먹지? 🤖", page_icon="🍔", layout="centered")
+st.title("🍔 오늘 뭐 먹지? 음식 추천 챗봇")
+st.write("오늘 뭘 먹을지 고민이신가요? 취향, 기분, 또는 상황을 말씀해주시면 딱 맞는 음식을 추천해 드려요!")
 
-# 1. Streamlit Secrets에서 API 키 로드 및 클라이언트 초기화
+# 2. Streamlit Secrets에서 API 키 불러오기 및 클라이언트 초기화
+# Streamlit Community Cloud에 배포 시 설정한 Secret 값을 자동으로 가져옵니다.
 if "GEMINI_API_KEY" not in st.secrets:
-    st.error("Streamlit Secrets에 'GEMINI_API_KEY'가 설정되지 않았습니다. 배포 설정을 확인해주세요.")
+    st.error("Secrets에 'GEMINI_API_KEY'가 설정되지 않았습니다. Streamlit 대시보드에서 설정해주세요.")
     st.stop()
 
-try:
-    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-except Exception as e:
-    st.error(f"Gemini 클라이언트 초기화 중 오류가 발생했습니다: {e}")
-    st.stop()
+@st.cache_resource
+def get_gemini_client():
+    # google-genai SDK의 클라이언트를 초기화합니다.
+    return genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
-# 2. 채팅 기록 세션 상태(Session State) 초기화
+client = get_gemini_client()
+
+# 3. 세션 상태(Session State)로 채팅 기록 유지
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "안녕하세요! 오성고등학교 급식 안내 챗봇입니다. 무엇을 도와드릴까요?"}
+        {
+            "role": "assistant",
+            "content": "안녕하세요! 오늘 어떤 음식을 찾으시나요? (예: '매콤하고 국물 있는 거 추천해줘', '다이어트 중인데 가벼운 점심 메뉴 알려줘')"
+        }
     ]
 
-# 3. 기존 채팅 기록 화면에 표시
+# 4. 기존 채팅 기록 화면에 표시
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+        st.write(message["content"])
 
-# 4. 사용자 입력 받기
-if user_input := st.chat_input("오늘 급식 메뉴가 뭐야?"):
-    # 사용자 메시지 추가 및 화면 표시
-    st.session_state.messages.append({"role": "user", "content": user_input})
+# 5. 사용자 입력 처리
+if user_input := st.chat_input("당신의 입맛이나 현재 기분을 알려주세요!"):
+    # 사용자 메시지를 화면에 표시 및 세션에 저장
     with st.chat_message("user"):
-        st.markdown(user_input)
+        st.write(user_input)
+    st.session_state.messages.append({"role": "user", "content": user_input})
 
-    # 5. 모델 답변 생성 및 오류 처리
+    # 챗봇 응답 생성
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        message_placeholder.markdown("🔄 메뉴판 확인 중...")
-        
-        try:
-            # 급식 답변에 최적화된 페르소나 부여 (System Instruction)
-            system_instruction = (
-                "당신은 오성고등학교의 친절하고 유쾌한 급식 안내 AI 비서입니다. "
-                "사용자가 급식 메뉴를 물어보면 친절하게 답변해주세요. "
-                "만약 오늘 날짜의 실제 정확한 급식 데이터를 모른다면, "
-                "솔직하게 실시간 급식 정보를 가져오지 못했다고 안내하고 나이스(NEIS) 급식 정보 등을 확인하라고 권유하세요. "
-                "답변할 때는 이모지를 적절히 섞어서 학생들에게 말하듯 친근하게 해주세요."
-            )
-
-            # API 호출 (gemini-2.5-flash-lite 모델 사용)
-            response = client.models.generate_content(
-                model='gemini-2.5-flash-lite',
-                contents=user_input,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.7,
+        response_placeholder = st.empty()
+        with st.spinner("🤖 맛있는 메뉴를 고민하는 중..."):
+            try:
+                # 챗봇에게 페르소나 부여 (시스템 지침 설정)
+                system_instruction = (
+                    "당신은 친절하고 위트 있는 음식 추천 전문가입니다. "
+                    "사용자의 요구사항(기분, 날씨, 예산 등)을 분석하여 "
+                    "구체적인 음식 메뉴와 그렇게 추천한 이유를 맛있게 설명해주세요."
                 )
-            )
-            
-            # 답변 출력 및 세션 저장
-            answer = response.text
-            message_placeholder.markdown(answer)
-            st.session_state.messages.append({"role": "assistant", "content": answer})
 
-        except APIError as ae:
-            # Gemini API 자체 오류 처리
-            error_msg = f"❌ Gemini API 오류가 발생했습니다: {ae.message}"
-            message_placeholder.markdown(error_msg)
-        except Exception as e:
-            # 기타 일반 오류 처리
-            error_msg = f"⚠️ 예상치 못한 오류가 발생했습니다: {str(e)}"
-            message_placeholder.markdown(error_msg)
+                # 최신 google-genai SDK 방식으로 gemini-2.5-flash-lite 호출
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash-lite',
+                    contents=user_input,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.7,
+                    )
+                )
+                
+                # 응답 검증 및 예외 처리
+                if response.text:
+                    ai_response = response.text
+                    response_placeholder.write(ai_response)
+                    # 세션에 AI 응답 저장
+                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                else:
+                    error_msg = "죄송합니다. 답변을 생성하지 못했습니다. 다시 시도해주세요."
+                    response_placeholder.error(error_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+
+            except APIError as e:
+                # Gemini API 관련 오류 처리
+                error_msg = f"Gemini API 오류가 발생했습니다: {e.message}"
+                response_placeholder.error(error_msg)
+            except Exception as e:
+                # 기타 일반 오류 처리
+                error_msg = f"예상치 못한 오류가 발생했습니다: {str(e)}"
+                response_placeholder.error(error_msg)
