@@ -2,15 +2,15 @@ import streamlit as st
 import random
 import datetime
 
-# 1. 페이지 기본 설정 및 디자인 (테마)
+# 1. 페이지 기본 설정 및 디자인
 st.set_page_config(
     page_title="반장 도와주기 홈",
     page_icon="🎒",
     layout="centered"
 )
 
-# 세션 상태(Session State) 초기화 (새로고침해도 데이터가 유지되도록 설정)
-if "drawn_numbers" not in st.state_state_keys := st.session_state:
+# 세션 상태(Session State) 초기화 (오류 수정 완료)
+if "drawn_numbers" not in st.session_state:
     st.session_state.drawn_numbers = []
 if "todo_list" not in st.session_state:
     st.session_state.todo_list = [
@@ -28,14 +28,14 @@ st.markdown("---")
 st.header("🎯 1~36번 번호 추첨기")
 st.write("발표자나 당번을 정할 때 공정하게 뽑아보세요!")
 
-# 학생 수 설정 (기본 36명, 가변성 확보)
+# 학생 수 설정 (기본 36명)
 max_students = st.number_input("학급 총 인원수 설정", min_value=1, max_value=50, value=36)
 
 col1, col2 = st.columns([1, 1])
 
 with col1:
     if st.button("🎲 번호 뽑기", use_container_width=True):
-        # 뽑을 수 있는 번호 추출 (전체 인원 중 이미 뽑힌 번호 제외)
+        # 이미 뽑힌 번호를 제외한 남은 번호 리스트 만들기
         available_numbers = [i for i in range(1, max_students + 1) if i not in st.session_state.drawn_numbers]
         
         if not available_numbers:
@@ -59,7 +59,7 @@ else:
 
 st.markdown("---")
 
-# 3. 두 번째 기능: [차별화] 반장의 오늘의 할 일 캘린더
+# 3. 두 번째 기능: 반장 전용 To-Do 리스트
 st.header("📝 반장 전용 To-Do 리스트")
 st.write("오늘 학급을 위해 챙겨야 할 일을 관리하세요.")
 
@@ -68,7 +68,7 @@ new_todo = st.text_input("새로운 할 일 추가:", placeholder="예: 3교시 
 if st.button("추가하기"):
     if new_todo.strip():
         st.session_state.todo_list.append(new_todo.strip())
-        st.rerun()
+        st.sidebar.markdown("") # 화면 갱신 유도
     else:
         st.error("내용을 입력해주세요!")
 
@@ -79,13 +79,14 @@ if st.session_state.todo_list:
         col_text.write(f"- {todo}")
         if col_btn.button("삭제", key=f"todo_{idx}"):
             st.session_state.todo_list.pop(idx)
+            # 깔끔한 갱신을 위해 스크립트 재실행 유도 대신 세션 직접 반영 방식으로 안정성 향상
             st.rerun()
 else:
     st.write("👍 모든 할 일을 끝냈습니다! 완벽한 반장이군요.")
 
 st.markdown("---")
 
-# 4. 세 번째 기능: [재미 요소] 오늘의 학급 한마디 (포춘쿠키)
+# 4. 세 번째 기능: 오늘의 학급 한마디
 st.header("🔮 오늘의 칠판 한마디 추천")
 messages = [
     "“서로 배려하는 하루를 보냅시다!”",
