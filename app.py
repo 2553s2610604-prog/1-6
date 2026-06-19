@@ -7,7 +7,6 @@ st.set_page_config(
     page_title="우리 반 질서 수호자",
     page_icon="🛡️",
     layout="wide"
-)
 
 # 2. Session State (데이터 초기화)
 if "noisy_students" not in st.session_state:
