@@ -35,16 +35,16 @@ st.title("🛡️ 우당탕탕 우리 반 질서 수호자")
 st.caption("수업 질서를 지키기 위한 반장 전용 시크릿 대시보드")
 st.markdown("---")
 
-# 🌟 [오류 해결 & 이름 제거] 절대 터지지 않는 링크 버튼 방식으로 변경
+# 🌟 [오류 완전 해결] 이름은 지우고, 내부 파일 매핑으로 정상 이동 구현
 st.subheader("👥 우리 반 맞춤형 학급 기능 바로가기")
-st.info("💡 각 버튼을 누르면 해당 기능 페이지로 부드럽게 이동합니다.")
+st.info("💡 버튼을 누르면 해당 기능 페이지로 즉시 이동합니다.")
 
-# 깔끔하게 기능 이름만 남기고, 절대 튕기지 않는 URL 경로로 매핑
+# 실제 pages 폴더 안의 파일명과 1:1 매칭 (이름 노출 제거)
 menu_items = [
-    {"url": "/자리_바꾸기", "label": "🪑 자리 바꾸기"},
-    {"url": "/출석_확인", "label": "📝 出席 확인"},
-    {"url": "/청소구역_정하기", "label": "🧹 청소구역 정하기"},
-    {"url": "/학급_투표", "label": "🗳️ 학급 투표"}
+    {"file": "김건우", "label": "🪑 자리 바꾸기"},
+    {"file": "서지아", "label": "📝 출석 확인"},
+    {"file": "이상훈", "label": "🧹 청소구역 정하기"},
+    {"file": "진서우", "label": "🗳️ 학급 투표"}
 ]
 
 # 4개의 칸(Column)을 만들어 가로로 정렬
@@ -52,8 +52,8 @@ member_cols = st.columns(len(menu_items))
 
 for i, item in enumerate(menu_items):
     with member_cols[i]:
-        # st.page_link 대신 오류를 뿜지 않는 st.link_button을 사용하여 안전성을 극대화했습니다.
-        st.link_button(item['label'], url=item['url'], use_container_width=True)
+        # 내부 파일 경로를 정확하게 짚어주어 Streamlit 라우팅 오류를 해결했습니다.
+        st.page_link(f"pages/{item['file']}.py", label=item['label'], use_container_width=True)
 
 st.markdown("---")
 
