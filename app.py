@@ -16,6 +16,10 @@ if "noisy_students" not in st.session_state:
 if "notices" not in st.session_state:
     st.session_state.notices = ["1. 내일 수학 수행평가 준비물 챙기기", "2. 급식 질서 지키기"]
 
+# 멘탈 케어 메시지를 안정적으로 유지하기 위한 저장소 초기화
+if "mental_msg" not in st.session_state:
+    st.session_state.mental_msg = "아직 치료제를 복용하지 않았습니다. 아래 버튼을 눌러보세요!"
+
 # 멘탈 케어 메시지 풀
 MENTAL_MESSAGES = [
     "반장님, 오늘도 정말 고생이 많아요! 👏👏",
@@ -31,20 +35,25 @@ st.title("🛡️ 우당탕탕 우리 반 질서 수호자")
 st.caption("수업 질서를 지키기 위한 반장 전용 시크릿 대시보드")
 st.markdown("---")
 
-# 🌟 [자동 변경 완료] 친구들 페이지로 이동하는 바로가기 버튼 섹션
-st.subheader("👥 우리 반 멤버별 개인 페이지 바로가기")
-st.info("💡 아래 버튼을 누르면 친구들이 만든 페이지로 바로 이동합니다!")
+# 🌟 [요청사항 반영] 친구들 페이지별 기능 매칭 버튼 섹션
+st.subheader("👥 우리 반 맞춤형 학급 기능 바로가기")
+st.info("💡 친구들이 제작한 각 페이지의 전용 기능으로 바로 연결됩니다.")
 
-# 사진에 있던 친구들 이름 정확히 매칭
-class_members = ["김건우", "서지아", "이상훈", "진서우"]
+# 각 친구들의 파일과 매칭될 표시 이름 정의
+menu_items = [
+    {"file": "김건우", "label": "🪑 자리 바꾸기 (김건우)"},
+    {"file": "서지아", "label": "📝 출석 확인 (서지아)"},
+    {"file": "이상훈", "label": "🧹 청소구역 정하기 (이상훈)"},
+    {"file": "진서우", "label": "🗳️ 학급 투표 (진서우)"}
+]
 
-# 4개의 칸(Column)을 만들어서 가로로 예쁘게 배치
-member_cols = st.columns(len(class_members))
+# 4개의 칸(Column)을 만들어 가로로 정렬
+member_cols = st.columns(len(menu_items))
 
-for i, member in enumerate(class_members):
+for i, item in enumerate(menu_items):
     with member_cols[i]:
-        # 내부 pages 폴더 안의 파일들과 연동됩니다.
-        st.page_link(f"pages/{member}.py", label=f"🏃 {member}의 페이지", use_container_width=True)
+        # 파일 경로는 그대로 유지하면서, 화면에 보이는 이름(label)만 기능 위주로 변경했습니다.
+        st.page_link(f"pages/{item['file']}.py", label=item['label'], use_container_width=True)
 
 st.markdown("---")
 
@@ -88,23 +97,19 @@ with col1:
     if st.session_state.noisy_students:
         st.markdown("#### 📉 누적 적발 현황")
         
-        # 데이터프레임 변환 후 시각화
         df = pd.DataFrame(
             list(st.session_state.noisy_students.items()), 
             columns=["학생 이름", "경고 횟수"]
         ).sort_values(by="경고 횟수", ascending=False)
         
-        # 테이블 출력
         st.dataframe(df, use_container_width=True, hide_index=True)
         
-        # 특정 학생 면죄부 주기 (삭제 기능)
         st.markdown("##### 😇 반장의 자비 (경고 리셋)")
         reset_name = st.selectbox("리셋할 학생 선택:", ["선택하세요"] + list(st.session_state.noisy_students.keys()))
         if st.button("경고 초기화") and reset_name != "선택하세요":
             del st.session_state.noisy_students[reset_name]
             st.rerun()
             
-        # 초기화 버튼
         if st.button("🗑️ 전체 목록 초기화 (종례 시간)"):
             st.session_state.noisy_students = {}
             st.success("클린한 교실이 되었습니다!")
@@ -137,9 +142,12 @@ with col2:
 
     st.markdown("---")
 
-    # 3. 반장 멘탈 케어 존
+    # 3. 반장 멘탈 케어 존 
     st.subheader("🧘 반장 멘탈 케어 힐링존")
     st.write("질서 지키느라 지친 반장님, 버튼을 눌러 위로를 받으세요.")
+    
     if st.button("💖 멘탈 치료제 복용"):
-        random_msg = random.choice(MENTAL_MESSAGES)
-        st.info(random_msg)
+        st.session_state.mental_msg = random.choice(MENTAL_MESSAGES)
+        st.rerun()
+        
+    st.info(st.session_state.mental_msg)
