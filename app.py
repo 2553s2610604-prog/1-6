@@ -7,6 +7,7 @@ st.set_page_config(
     page_title="우리 반 질서 수호자",
     page_icon="🛡️",
     layout="wide"
+)
 
 # 2. Session State (데이터 초기화)
 if "noisy_students" not in st.session_state:
@@ -43,7 +44,7 @@ menu_items = [
     {"file": "번호 추첨", "label": "🪑 번호 추첨"},
     {"file": "서지아", "label": "📝 출석 확인"},
     {"file": "이상훈", "label": "🧹 청소구역 정하기"},
-    {"file": "학급투표", "label": "🗳️ 학급 투표"}
+    {"file": "학급 투표", "label": "🗳️ 학급 투표"}
 ]
 
 # 4개의 칸(Column)을 만들어 가로로 정렬
