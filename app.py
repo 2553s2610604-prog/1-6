@@ -31,6 +31,23 @@ st.title("🛡️ 우당탕탕 우리 반 질서 수호자")
 st.caption("수업 질서를 지키기 위한 반장 전용 시크릿 대시보드")
 st.markdown("---")
 
+# 🌟 [자동 변경 완료] 친구들 페이지로 이동하는 바로가기 버튼 섹션
+st.subheader("👥 우리 반 멤버별 개인 페이지 바로가기")
+st.info("💡 아래 버튼을 누르면 친구들이 만든 페이지로 바로 이동합니다!")
+
+# 사진에 있던 친구들 이름 정확히 매칭
+class_members = ["김건우", "서지아", "이상훈", "진서우"]
+
+# 4개의 칸(Column)을 만들어서 가로로 예쁘게 배치
+member_cols = st.columns(len(class_members))
+
+for i, member in enumerate(class_members):
+    with member_cols[i]:
+        # 내부 pages 폴더 안의 파일들과 연동됩니다.
+        st.page_link(f"pages/{member}.py", label=f"🏃 {member}의 페이지", use_container_width=True)
+
+st.markdown("---")
+
 # 왼쪽 사이드바: 교실 상태 컨트롤러
 with st.sidebar:
     st.header("🚨 현재 교실 상태 설정")
