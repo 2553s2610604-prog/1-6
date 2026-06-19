@@ -44,7 +44,7 @@ menu_items = [
     {"file": "김건우", "label": "🪑 자리 바꾸기"},
     {"file": "서지아", "label": "📝 출석 확인"},
     {"file": "이상훈", "label": "🧹 청소구역 정하기"},
-    {"file": "진서우", "label": "🗳️ 학급 투표"}
+    {"file": "학급투표", "label": "🗳️ 학급 투표"}
 ]
 
 # 4개의 칸(Column)을 만들어 가로로 정렬
@@ -52,7 +52,6 @@ member_cols = st.columns(len(menu_items))
 
 for i, item in enumerate(menu_items):
     with member_cols[i]:
-        # 내부 파일 경로를 정확하게 짚어주어 Streamlit 라우팅 오류를 해결했습니다.
         st.page_link(f"pages/{item['file']}.py", label=item['label'], use_container_width=True)
 
 st.markdown("---")
