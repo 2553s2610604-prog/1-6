@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 import math
 
@@ -8,17 +9,41 @@ st.set_page_config(
 )
 
 # -----------------------
-# CSS
+# 배경 + 버튼 스타일
 # -----------------------
 st.markdown("""
 <style>
+
+/* 전체 배경 */
+.stApp {
+    background: linear-gradient(
+        135deg,
+        #74ebd5 0%,
+        #ACB6E5 100%
+    );
+}
+
+/* 제목 */
+h1, h2, h3 {
+    color: white;
+    text-align: center;
+}
+
+/* 큰 투표 버튼 */
 div.stButton > button {
     height: 220px;
     width: 100%;
     font-size: 2rem;
     font-weight: bold;
     border-radius: 20px;
+    border: none;
 }
+
+/* 알림창 둥글게 */
+[data-testid="stAlert"] {
+    border-radius: 15px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -199,3 +224,4 @@ else:
         st.session_state.options = []
         st.session_state.votes = []
         st.rerun()
+```
